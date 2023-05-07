@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Leaflet Map</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+      #mapid {
+        height: 400px;
+      }
+    </style>
+  </head>
+  <body>
+    <form>
+        <label for="address">住所を入力してください</label>
+        <input type="text", id="address", name="address", required>
+        <button type="button", id="submit-btn">送信</button>
+    
+    </form>
+    <div id="mapid"></div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
+    <script src="https://cdn.geolonia.com/community-geocoder.js"></script>
+    <script>
+      var mymap = L.map("mapid").setView([35.681236, 139.767125], 13);
+
+      const redIcon = L.icon({
+        iconUrl: "https://esm.sh/leaflet@1.9.2/dist/images/marker-icon.png",
+        iconRetinaUrl: "https://esm.sh/leaflet@1.9.2/dist/images/marker-icon-2x.png",
+        shadowUrl: "https://esm.sh/leaflet@1.9.2/dist/images/marker-shadow.png",
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        tooltipAnchor: [16, -28],
+        shadowSize: [41, 41],
+        className: "icon-red", // <= ここでクラス名を指定
+      });
+
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution:
+          'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, ' +
+          '<a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
+          'Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+        maxZoom: 18,
+      }).addTo(mymap);
+
+      var locations = [];
+
+      //ユーザーが地図上でクリックした座標を取得する．
+       function onMapClick(e) {
+            var lat = e.latlng.lat;
+            var lng = e.latlng.lng;
+
+            // ロケーションのリストにクリックされた地点を追加する
+            locations.push([lat, lng]);
+            // マーカーを追加する
+            L.marker([lat, lng]).addTo(mymap);
+        }
+
+        function getCenter() {
+            //今までのマーカー削除
+            mymap.eachLayer(function (layer) {
+                if (layer instanceof L.Marker) {
+                    mymap.removeLayer(layer);
+                }
+            });
+            fetch('/locations/', {
+                method: 'POST',
+                headers: {
+                'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({locations: locations})
+            })
+            .then(response => response.json())
+            .then(result => {
+                //初期化最初に
+                locations = [];
+
+                // 中心点を取得する
+                var center = result.center;
+                // マーカーを追加する
+                L.marker(center, {icon: redIcon}).addTo(mymap);
+                // 地図の中心を中心点に移動する
+                mymap.panTo(center);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+
+        mymap.on("click", onMapClick);
+
+        //住所検索フォームに入力された値を取得し，サーバーに送信する．
+        const form = document.querySelector("form");
+        const addressInput = form.querySelector("#address");
+        const submitButton = form.querySelector('#submit-btn');
+        
+        //送信ボタンが押されたら，位置情報に変換して，「locations」に追加する
+        submitButton.addEventListener("click", ()=> {
+            console.log("データ送信")
+            const address = addressInput.value;
+            console.log(address)
+            getLatLng(address, (result)=>{
+                const lat = result.lat;
+                const lng = result.lng;
+                console.log("緯度経度:",lat, lng)
+                locations.push([lat, lng]);
+                L.marker([lat, lng]).addTo(mymap);
+            })
+            addressInput.value = "";
+
+            /*
+            console.log("データ送信")
+            const address = addressInput.value;
+            const API_KEY = "d8d320d5303644debb4f7ce7a1b2778a";
+            console.log(`http://api.openweathermap.org/geo/1.0/zip?zip=${address},3166&appid=${API_KEY}`)
+            fetch(`http://api.openweathermap.org/geo/1.0/zip?zip=${address},3166&appid=${API_KEY}`)
+            .then(response => response.json())
+            .then(data => {
+                console.log(data)
+                const lat = data["lat"];
+                const lon = data["lon"];
+                console.log("変換後：", lat, lon)
+                locations.push([lat, lon]);
+                addressInput.value = "";
+            */
+        });
+
+    </script>
+    <button onclick="getCenter()">真ん中の地点を求める</button>
+  </body>
+</html>
