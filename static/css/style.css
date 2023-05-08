@@ -1,3 +1,57 @@
 .icon-red {
     filter: hue-rotate(150deg);
 }
+
+.header {
+    /* position: fixed; 
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 50px;
+    z-index: 9999; */
+    height: 50px;
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    font-size: 24px;
+    line-height: 50px;
+}
+
+#mapid {
+    height: 600px;
+    width: 100%;
+}
+
+.map-container {
+    /* position: absolute */
+    margin-top: 50px;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 10000;
+}
+
+.button_get_center {
+     /* ブラウザ特有のスタイルを無効に */
+    -moz-appearance: none;
+    -webkit-appearance: none;
+    appearance: none;
+
+
+    /* 整える */
+    display: block;
+    margin: 1em auto; /* 前後の隙間 */
+    padding: 0.6em 1em; /* 塗りの余白 */
+    font-size: 1em; /* フォントサイズ */
+    background-color: #1aa1ff; /* 背景色 */
+    color: #FFF; /* テキストカラー */
+    cursor: pointer; /* カーソルを指マークに */
+    border-radius: 3px; /* 角の丸み */
+    border: 0; /* 枠線を消す */
+    transition: 0.3s; /* ホバーの変化を滑らかに */
+}
+
+.button_get_center:hover {
+    background-color: #064fda;
+}
+

@@ -4,30 +4,37 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Leaflet Map</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/style.css') }}">
-    <style>
-      #mapid {
-        height: 400px;
-      }
-    </style>
-  </head>
-  <body>
-    <form>
-        <label for="address">住所を入力してください</label>
-        <input type="text", id="address", name="address", required>
-        <button type="button", id="submit-btn">送信</button>
-    
-    </form>
-    <div id="mapid"></div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
     <script src="https://cdn.geolonia.com/community-geocoder.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css"
+    />
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="{{ url_for('static', filename='css/Control.OSMGeocoder.css') }}"
+    />
+    <script src="static/js/Control.OSMGeocoder.js"></script>
+    <link rel="stylesheet" type="text/css" href="../static/css/style.css" />
+  </head>
+  <body>
+    <div class="header">みんなの中心</div>
+    <div class="map-container">
+      <div id="mapid"></div>
+    </div>
+    <button class="button_get_center" onclick="getCenter()">真ん中の地点を求める</button>
+    <div class="center_position" id="center_position"></div>
+
+
     <script>
       var mymap = L.map("mapid").setView([35.681236, 139.767125], 13);
 
       const redIcon = L.icon({
         iconUrl: "https://esm.sh/leaflet@1.9.2/dist/images/marker-icon.png",
-        iconRetinaUrl: "https://esm.sh/leaflet@1.9.2/dist/images/marker-icon-2x.png",
+        iconRetinaUrl:
+          "https://esm.sh/leaflet@1.9.2/dist/images/marker-icon-2x.png",
         shadowUrl: "https://esm.sh/leaflet@1.9.2/dist/images/marker-shadow.png",
         iconSize: [25, 41],
         iconAnchor: [12, 41],
@@ -45,89 +52,99 @@
         maxZoom: 18,
       }).addTo(mymap);
 
+      //地図上に住所検索窓を作る．
+      var option = {
+        position: "topright", // topright, topleft, bottomright, bottomleft
+        text: "検索",
+        placeholder: "検索条件を入力してください。",
+      };
+      var osmGeocoder = new L.Control.OSMGeocoder(option);
+      mymap.addControl(osmGeocoder);
+
       var locations = [];
 
       //ユーザーが地図上でクリックした座標を取得する．
-       function onMapClick(e) {
-            var lat = e.latlng.lat;
-            var lng = e.latlng.lng;
+      function onMapClick(e) {
+        var lat = e.latlng.lat;
+        var lng = e.latlng.lng;
 
-            // ロケーションのリストにクリックされた地点を追加する
-            locations.push([lat, lng]);
-            // マーカーを追加する
-            L.marker([lat, lng]).addTo(mymap);
-        }
+        // ロケーションのリストにクリックされた地点を追加する
+        locations.push([lat, lng]);
+        // マーカーを追加する
+        L.marker([lat, lng]).addTo(mymap);
+      }
 
-        function getCenter() {
-            //今までのマーカー削除
-            mymap.eachLayer(function (layer) {
-                if (layer instanceof L.Marker) {
-                    mymap.removeLayer(layer);
-                }
-            });
-            fetch('/locations/', {
-                method: 'POST',
-                headers: {
-                'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({locations: locations})
-            })
-            .then(response => response.json())
-            .then(result => {
-                //初期化最初に
-                locations = [];
-
-                // 中心点を取得する
-                var center = result.center;
-                // マーカーを追加する
-                L.marker(center, {icon: redIcon}).addTo(mymap);
-                // 地図の中心を中心点に移動する
-                mymap.panTo(center);
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
-        }
-
-        mymap.on("click", onMapClick);
-
-        //住所検索フォームに入力された値を取得し，サーバーに送信する．
-        const form = document.querySelector("form");
-        const addressInput = form.querySelector("#address");
-        const submitButton = form.querySelector('#submit-btn');
-        
-        //送信ボタンが押されたら，位置情報に変換して，「locations」に追加する
-        submitButton.addEventListener("click", ()=> {
-            console.log("データ送信")
-            const address = addressInput.value;
-            console.log(address)
-            getLatLng(address, (result)=>{
-                const lat = result.lat;
-                const lng = result.lng;
-                console.log("緯度経度:",lat, lng)
-                locations.push([lat, lng]);
-                L.marker([lat, lng]).addTo(mymap);
-            })
-            addressInput.value = "";
-
-            /*
-            console.log("データ送信")
-            const address = addressInput.value;
-            const API_KEY = "d8d320d5303644debb4f7ce7a1b2778a";
-            console.log(`http://api.openweathermap.org/geo/1.0/zip?zip=${address},3166&appid=${API_KEY}`)
-            fetch(`http://api.openweathermap.org/geo/1.0/zip?zip=${address},3166&appid=${API_KEY}`)
-            .then(response => response.json())
-            .then(data => {
-                console.log(data)
-                const lat = data["lat"];
-                const lon = data["lon"];
-                console.log("変換後：", lat, lon)
-                locations.push([lat, lon]);
-                addressInput.value = "";
-            */
+      function getCenter() {
+        //今までのマーカー削除
+        mymap.eachLayer(function (layer) {
+          if (layer instanceof L.Marker) {
+            mymap.removeLayer(layer);
+          }
         });
 
+        fetch("/locations/", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ locations: locations }),
+        })
+          .then((response) => response.json())
+          .then((result) => {
+            //初期化最初に
+            locations = [];
+
+            // 中心点を取得する
+            var center = result.center;
+            // マーカーを追加する
+            L.marker(center, { icon: redIcon }).addTo(mymap);
+            // 地図の中心を中心点に移動する
+            mymap.panTo(center);
+
+            //逆ジオコーディングして，真ん中の地点を文字列で表示
+            var center_reversed;
+            fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=' + center[0] + '&lon=' + center[1])
+            .then(response => response.json())
+            .then(data => {
+                // 住所を取得して、アラートで表示する
+                center_reversed = data.display_name;
+                console.log(center_reversed);
+                console.log(data);
+                //真ん中の地点を文字列で表示
+                center_position = document.getElementById("center_position");
+                center_position.innerText = "中心地点は" + center_reversed + "です．";
+            });
+
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+          });
+      }
+
+      mymap.on("click", onMapClick);
+
+      //住所検索フォームに入力された値を取得し，サーバーに送信する．
+      const form = document.querySelector("form");
+      const addressInput = form.querySelector("#address");
+      const submitButton = form.querySelector("#submit-btn");
+
+      //送信ボタンが押されたら，位置情報に変換して，「locations」に追加する
+      submitButton.addEventListener("click", () => {
+        console.log("データ送信");
+        const address = addressInput.value;
+        console.log(address);
+        getLatLng(address, (result) => {
+          const lat = result.lat;
+          const lng = result.lng;
+          console.log("緯度経度:", lat, lng);
+          locations.push([lat, lng]);
+          L.marker([lat, lng]).addTo(mymap);
+        });
+        addressInput.value = "";
+
+        /*
+         */
+      });
     </script>
-    <button onclick="getCenter()">真ん中の地点を求める</button>
   </body>
 </html>

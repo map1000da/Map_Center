@@ -19,3 +19,6 @@ def locations():
     center = [center_lat, center_lng]
 
     return jsonify(center=center)
+
+if __name__ == "__main__":
+    app.run(debug=True)
