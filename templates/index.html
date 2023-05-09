@@ -64,7 +64,8 @@
       var locations = [];
 
       //ユーザーが地図上でクリックした座標を取得する．
-      function onMapClick(e) {
+      function onMapClick(e)
+      {
         var lat = e.latlng.lat;
         var lng = e.latlng.lng;
 
@@ -72,9 +73,31 @@
         locations.push([lat, lng]);
         // マーカーを追加する
         L.marker([lat, lng]).addTo(mymap);
+      };
+
+      //逆ジオコーディング部分を関数化する．
+      //fetch関数の非同期処理が終わるのを待つために， async/await を使う
+      async function reverseGeocode(lat, lng){
+        console.log(lat, lng);
+        url = 'https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=' + lat + '&lon=' + lng;
+
+        try {
+          const response = await fetch(url);
+          const data = await response.json();
+          console.log(data)
+
+          if (data){
+            return data.display_name;
+          }else{
+            throw new Error("逆ジオコーディングができませんでした");
+          }
+        } catch(error){
+          console.error(error);
+        }
       }
 
-      function getCenter() {
+      function getCenter()
+      {
         //今までのマーカー削除
         mymap.eachLayer(function (layer) {
           if (layer instanceof L.Marker) {
@@ -89,37 +112,39 @@
           },
           body: JSON.stringify({ locations: locations }),
         })
-          .then((response) => response.json())
-          .then((result) => {
-            //初期化最初に
-            locations = [];
+        .then((response) => response.json())
+        .then((result) => 
+        {
+          //初期化最初に
+          locations = [];
 
-            // 中心点を取得する
-            var center = result.center;
-            // マーカーを追加する
-            L.marker(center, { icon: redIcon }).addTo(mymap);
-            // 地図の中心を中心点に移動する
-            mymap.panTo(center);
+          // 中心点を取得する
+          var center = result.center;
+          // マーカーを追加する
+          L.marker(center, { icon: redIcon }).addTo(mymap);
+          // 地図の中心を中心点に移動する
+          mymap.panTo(center);
 
-            //逆ジオコーディングして，真ん中の地点を文字列で表示
-            var center_reversed;
-            fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=' + center[0] + '&lon=' + center[1])
-            .then(response => response.json())
-            .then(data => {
-                // 住所を取得して、アラートで表示する
-                center_reversed = data.display_name;
-                console.log(center_reversed);
-                console.log(data);
-                //真ん中の地点を文字列で表示
-                center_position = document.getElementById("center_position");
-                center_position.innerText = "中心地点は" + center_reversed + "です．";
-            });
-
-          })
-          .catch((error) => {
-            console.error("Error:", error);
-          });
-      }
+          //非同期関数として呼び出す．
+          async function displayCenterPosition(){
+            try
+            {
+              center_reversed = await reverseGeocode(center[0], center[1]);
+              console.log(center_reversed);
+              center_position = document.getElementById("center_position");
+              center_position.innerText = "中心地点は" + center_reversed + "です．";
+            }catch (error)
+            {
+            console.error(error);
+            }
+          }
+          displayCenterPosition();
+        })
+        .catch((error) =>
+        {
+          console.error("Error:", error);
+        });
+      };
 
       mymap.on("click", onMapClick);
 
@@ -127,24 +152,6 @@
       const form = document.querySelector("form");
       const addressInput = form.querySelector("#address");
       const submitButton = form.querySelector("#submit-btn");
-
-      //送信ボタンが押されたら，位置情報に変換して，「locations」に追加する
-      submitButton.addEventListener("click", () => {
-        console.log("データ送信");
-        const address = addressInput.value;
-        console.log(address);
-        getLatLng(address, (result) => {
-          const lat = result.lat;
-          const lng = result.lng;
-          console.log("緯度経度:", lat, lng);
-          locations.push([lat, lng]);
-          L.marker([lat, lng]).addTo(mymap);
-        });
-        addressInput.value = "";
-
-        /*
-         */
-      });
     </script>
   </body>
 </html>
